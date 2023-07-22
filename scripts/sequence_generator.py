@@ -31,43 +31,55 @@ output_format: Final[str] = "\n{sequences}\n\n"
 # Use {sequence} for the sequence and {index} for sequence's index in the targets array.
 sequence_format: Final[str] = "!{sequence}"
 
-# Separators between sequences and sequence elements
+# Format of the comment line. Use {text} for actual comment text.
+comment_format: Final[str] = "// {text}"
+
+# Separators between sequences, sequence elements and comment lines for a sequence
 sequence_separator: Final[str] = "\n\n"
 element_separator: Final[str] = ", "
+comment_separator: Final[str] = "\n"
+
+# Separator between sequence and it's comments
+separator_between_comment_and_sequence: Final[str] = "\n"
 
 # Sequences are set in the targets selection below
 
 
 # ======== SEQUENCES ======== #
-def seq_constant(value: float) -> Iterable[float]:
-    while True:
-        yield value
+class SequenceInstance:
 
-def seq_linear(start: float, shift: float) -> Iterable[float]:
-    val = start
-    while True:
-        yield val
-        val = val + shift
+    generator: Iterable[float]
+    comments: Iterable[str]
+
+    def __init__(self, generator: Iterable[float], *comments):
+        self.generator = generator
+        self.comments = comments
+
+
+def seq_constant(value: float) -> SequenceInstance:
+    def gen():
+        while True:
+            yield value
+    return SequenceInstance(gen, f"Constant; value {value}")
+
+def seq_linear(start: float, shift: float) -> SequenceInstance:
+    def gen():
+        val = start
+        while True:
+            yield val
+            val = val + shift
+    return SequenceInstance(gen, f"Linear; start {start} shift {shift}")
 
 
 # ======== TARGETS ======== #
 # Sequences that need to be generated
-sequences: Final[list[Iterable[float]]] = [
+sequences: Final[list[SequenceInstance]] = [
     seq_constant(value=5),
     seq_linear(start=5, shift=1.05)
 ]
 
 
 # ======== GENERATION ======== #
-def sequence_stringifier(sequence: Iterable[float], sequence_index: int) -> Iterable[str]:
-    """
-    Formats each sequence in according to sequence_format and element_separator.
-    Does not process sequence values in any other way.
-    """
-    sequence_payload_string = element_separator.join(map(str, sequence))
-    sequence_string = sequence_format.format(sequence=sequence_payload_string, index=sequence_index)
-    return sequence_string
-
 def main():
 
     # Generate sequences
@@ -76,9 +88,14 @@ def main():
 
     for i, sequence in enumerate(sequences):
         # Take rounding and length into account
-        values = map(lambda x: round(x, round_decimals), islice(sequence, sequence_length))
-        # Format and append to the result
-        output_strings.append(sequence_stringifier(values, i))
+        values = map(lambda x: round(x, round_decimals), islice(sequence.generator(), sequence_length))
+        string_values = map(str, values)
+        # Format sequence elements
+        sequence_string = sequence_format.format(sequence=element_separator.join(string_values), index=i)
+        # Format comments
+        comments_string = comment_format.format(text=comment_separator.join(sequence.comments))
+        # Concat for output
+        output_strings.append(f"{comments_string}{separator_between_comment_and_sequence}{sequence_string}")
 
     # Write file
     print("Forming output...")
