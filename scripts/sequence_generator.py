@@ -23,8 +23,14 @@ print_to_console: Final[bool] = True
 # Filename to print sequences to or None for no file output
 output_file: Final[str | None] = None
 
-# Format of the output for a single sequence. Supports {index} and {sequence}.
+# Format of the whole output.
+# Use {sequences} for main payload
+output_format: Final[str] = "\n{sequences}\n\n"
+
+# Format of the output for a single sequence.
+# Use {sequence} for the sequence and {index} for sequence's index in the targets array.
 sequence_format: Final[str] = "!{sequence}"
+
 # Separators between sequences and sequence elements
 sequence_separator: Final[str] = "\n\n"
 element_separator: Final[str] = ", "
@@ -45,6 +51,7 @@ def seq_linear(start: float, shift: float) -> Iterable[float]:
 
 
 # ======== TARGETS ======== #
+# Sequences that need to be generated
 sequences: Final[list[Iterable[float]]] = [
     seq_constant(value=5),
     seq_linear(start=5, shift=1.05)
@@ -75,7 +82,7 @@ def main():
 
     # Write file
     print("Forming output...")
-    output_payload: str = sequence_separator.join(output_strings)
+    output_payload: str = output_format.format(sequences=sequence_separator.join(output_strings))
 
     print("Writing output...")
     # Write to file
