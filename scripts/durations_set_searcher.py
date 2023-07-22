@@ -6,6 +6,23 @@ import itertools
 from traceback import format_exc
 
 
+# == PROBLEM ==
+# Find sets of approximate durations of actions and pools of those durations, such that
+# a random selection of a pool is balanced in terms of time spent on actions and action count.
+#
+# == ALTERNATIVE PROBLEM STATEMENT ==
+# Find sets of numbers, such that multiple subsets
+# of the same length and sum of elements can be formed.
+# Display found sets and subsets.
+#
+# == EXAMPLE ==
+# Set: (1, 2, 4, 7, 10, 15)
+# Pool length: 4
+# Pools (sum 18): [(1, 1, 1, 15), (2, 2, 4, 10), (2, 2, 7, 7)]
+# Pools (sum 19): [(1, 1, 2, 15), (1, 1, 7, 10), (1, 4, 4, 10), (1, 4, 7, 7), (4, 4, 4, 7)]
+# Pools (sum 20): [(1, 2, 2, 15), (1, 2, 7, 10), (2, 4, 4, 10), (2, 4, 7, 7)]
+
+
 # ======== SEARCH SETTINGS ======== #
 durations_range: Final[tuple[int, int]] = (4, 25)   # All possible non-forced durations
 
