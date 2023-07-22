@@ -48,11 +48,11 @@ separator_between_comment_and_sequence: Final[str] = "\n"
 # ======== SEQUENCES ======== #
 class SequenceInstance:
 
-    generator: Iterable[float]
+    values: Iterable[float]
     comments: Iterable[str]
 
-    def __init__(self, generator: Iterable[float], *comments):
-        self.generator = generator
+    def __init__(self, values: Iterable[float], *comments):
+        self.values = values
         self.comments = comments
 
 
@@ -60,7 +60,8 @@ def seq_constant(value: float) -> SequenceInstance:
     def gen():
         while True:
             yield value
-    return SequenceInstance(gen, f"Constant; value {value}")
+    return SequenceInstance(gen(), f"Constant; value {value}")
+
 
 def seq_linear(start: float, shift: float) -> SequenceInstance:
     def gen():
@@ -68,7 +69,7 @@ def seq_linear(start: float, shift: float) -> SequenceInstance:
         while True:
             yield val
             val = val + shift
-    return SequenceInstance(gen, f"Linear; start {start} shift {shift}")
+    return SequenceInstance(gen(), f"Linear; start {start} shift {shift}")
 
 
 # ======== TARGETS ======== #
@@ -84,22 +85,22 @@ def main():
 
     # Generate sequences
     print("Generating sequences...")
-    output_strings: list[str] = list()
+    output_strings = list()
 
     for i, sequence in enumerate(sequences):
         # Take rounding and length into account
-        values = map(lambda x: round(x, round_decimals), islice(sequence.generator(), sequence_length))
+        values = map(lambda x: round(x, round_decimals), islice(sequence.values, sequence_length))
         string_values = map(str, values)
         # Format sequence elements
         sequence_string = sequence_format.format(sequence=element_separator.join(string_values), index=i)
         # Format comments
-        comments_string = comment_format.format(text=comment_separator.join(sequence.comments))
+        comments_string = comment_separator.join(map(lambda s: comment_format.format(text=s), sequence.comments))
         # Concat for output
         output_strings.append(f"{comments_string}{separator_between_comment_and_sequence}{sequence_string}")
 
     # Write file
     print("Forming output...")
-    output_payload: str = output_format.format(sequences=sequence_separator.join(output_strings))
+    output_payload = output_format.format(sequences=sequence_separator.join(output_strings))
 
     print("Writing output...")
     # Write to file
