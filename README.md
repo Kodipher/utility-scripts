@@ -1,7 +1,6 @@
 # utility-scripts
 
- This repo contains a collection of standalone utility scripts
-
+This repo contains a collection of niche standalone utility python scripts. Each script has an outlined problem as the first comment, followed by constants that work as settings. All scripts can be found in the `scripts` directory.
 
 ### Contents:
 
