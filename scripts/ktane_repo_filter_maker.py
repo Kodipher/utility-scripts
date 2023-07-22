@@ -17,6 +17,7 @@ from traceback import format_exc
 # - includes all vanilla modules
 # - has date of creation in the file name
 #
+# Remark: Intended for teams who do not use The Full KTaNE Experience mod collection.
 
 
 # ======== SETTINGS ======== #
