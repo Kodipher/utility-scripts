@@ -72,11 +72,57 @@ def seq_linear(start: float, shift: float) -> SequenceInstance:
     return SequenceInstance(gen(), f"Linear; start {start} shift {shift}")
 
 
+def seq_mult(start: float, mult: float) -> SequenceInstance:
+    def gen():
+        val = start
+        while True:
+            yield val
+            val = val * mult
+    return SequenceInstance(gen(), f"Multiplication; start {start}, multiplier {mult}")
+
+
+def seq_power(base: float, exp_start: float = 0, exp_shift: float = 1) -> SequenceInstance:
+    def gen():
+        exp = exp_start
+        while True:
+            yield base**exp
+            exp = exp + exp_shift
+    return SequenceInstance(gen(), f"Power; base {base}, exponent start {exp_start}, exponent shift {exp_shift}")
+
+
+def seq_lucas(first: float, second: float) -> SequenceInstance:
+    def gen():
+        first_copy = first
+        second_copy = second
+        yield first_copy
+        yield second_copy
+        while True:
+            third = first_copy + second_copy
+            yield third
+            first_copy = second_copy
+            second_copy = third
+    return SequenceInstance(gen(), f"Lucas/Fibonachi; first {first}, second {second}")
+
+
+def seq_mod_alt_sign(sequence: SequenceInstance, is_start_negative: bool = False) -> SequenceInstance:
+    def gen():
+        is_negative = is_start_negative
+        for val in sequence.values:
+            yield val * -1 if is_negative else val
+            is_negative = not is_negative
+    return SequenceInstance(gen(), *sequence.comments, f"With alternating sign; start {'negative' if is_start_negative else 'positive'}")
+
+
 # ======== TARGETS ======== #
 # Sequences that need to be generated
 sequences: Final[list[SequenceInstance]] = [
     seq_constant(value=5),
-    seq_linear(start=5, shift=1.05)
+    seq_linear(start=5, shift=1),
+    seq_mult(start=1, mult=1.5),
+    seq_power(2),
+    seq_lucas(0, 1),
+    seq_lucas(2, 1),
+    seq_mod_alt_sign(seq_constant(value=5))
 ]
 
 
