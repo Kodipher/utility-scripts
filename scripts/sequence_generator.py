@@ -3,6 +3,7 @@ from typing import Final, Iterable
 
 import math
 import random
+from itertools import islice
 from pathlib import Path
 from traceback import format_exc
 
@@ -17,7 +18,7 @@ sequence_length: Final[int] = 50
 # Number of places to round decimals to
 round_decimals: Final[int] = 6
 
-# Flag that dictates if the sequences should be print to console
+# Flag that dictates if the sequences should be printed to console
 print_to_console: Final[bool] = True
 # Filename to print sequences to or None for no file output
 output_file: Final[str | None] = None
@@ -51,8 +52,41 @@ sequences: Final[list[Iterable[float]]] = [
 
 
 # ======== GENERATION ======== #
+def sequence_stringifier(sequence: Iterable[float], sequence_index: int) -> Iterable[str]:
+    """
+    Formats each sequence in according to sequence_format and element_separator.
+    Does not process sequence values in any other way.
+    """
+    sequence_payload_string = element_separator.join(map(str, sequence))
+    sequence_string = sequence_format.format(sequence=sequence_payload_string, index=sequence_index)
+    return sequence_string
+
 def main():
-    pass
+
+    # Generate sequences
+    print("Generating sequences...")
+    output_strings: list[str] = list()
+
+    for i, sequence in enumerate(sequences):
+        # Take rounding and length into account
+        values = map(lambda x: round(x, round_decimals), islice(sequence, sequence_length))
+        # Format and append to the result
+        output_strings.append(sequence_stringifier(values, i))
+
+    # Write file
+    print("Forming output...")
+    output_payload: str = sequence_separator.join(output_strings)
+
+    print("Writing output...")
+    # Write to file
+    if output_file is not None:
+        bytes_written = Path(output_file).write_text(output_payload)
+        print(f"{bytes_written} bytes written to \"{output_file}\"")
+
+    # Write to console
+    if print_to_console:
+        print("Generated sequences:")
+        print(output_payload)
 
 
 if __name__ == "__main__":
