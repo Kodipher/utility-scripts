@@ -16,10 +16,9 @@ durations_max_mult: Final[float] = 4.0
 duration_set_size_range: Final[tuple[int, int]] = (3, 20)           # Number of durations in a set
 duration_set_forced_first_added: Final[Sequence[int]] = [1, 2]      # Lowest durations that must be present in all sets
 
-stage_count_range: Final[tuple[int, int]] = (4, 4)          # Number of durations in a pool
+pool_length_range: Final[tuple[int, int]] = (4, 4)          # Number of durations in a pool
 pool_target_sum_range: Final[tuple[int, int]] = (3, 20)     # Acceptable range of total durations
 min_pools_with_the_same_sum: Final[int] = 3                 # Number of pools with the same sum to form valid pool list
-
 
 
 # ======== UTILS ======== #
@@ -93,7 +92,7 @@ def generate_sets() -> Iterable[Sequence[int]]:
         yield from generate_next_durations_with_append(sorted_forced, generate_target_count)
 
 
-def generate_pools(durations_set: Sequence[int], stage_count: int) -> dict[int, list[Sequence[int]]]:
+def generate_pools(durations_set: Sequence[int], pool_length: int) -> dict[int, list[Sequence[int]]]:
     """
     Generates all possible pools from durations sets, in according to the settings.
     Stage count is provided as an argument.
@@ -101,7 +100,7 @@ def generate_pools(durations_set: Sequence[int], stage_count: int) -> dict[int, 
     """
 
     # Generate all possible pools
-    all_pools = itertools.combinations_with_replacement(durations_set, stage_count)
+    all_pools = itertools.combinations_with_replacement(durations_set, pool_length)
     pool: Sequence[int]
 
     # Sort pools by duration
@@ -143,9 +142,9 @@ def generate_pools(durations_set: Sequence[int], stage_count: int) -> dict[int, 
     return pools_filtered
 
 
-def print_pools(stage_count: int, durations_set: Sequence[int], pools_by_sum: dict[int, list[Sequence[int]]]):
+def print_pools(pool_length: int, durations_set: Sequence[int], pools_by_sum: dict[int, list[Sequence[int]]]):
     print()
-    print(f"Stage count: {stage_count}")
+    print(f"Pool length: {pool_length}")
     print(f"Set: {durations_set}")
     for total_duration, pool_list in pools_by_sum.items():
         print(f"Pools (sum {total_duration}): {pool_list}")
@@ -160,11 +159,11 @@ def main():
 
     # Generate durations pools
     print(f"Generating and filtering pools...")
-    for stage_count in range_inclusive_tuple(stage_count_range):
+    for pool_length in range_inclusive_tuple(pool_length_range):
         for durations_set in durations_sets:
-            pools = generate_pools(durations_set, stage_count)
+            pools = generate_pools(durations_set, pool_length)
             if len(pools) != 0:
-                print_pools(stage_count, durations_set, pools)
+                print_pools(pool_length, durations_set, pools)
 
 
 if __name__ == "__main__":
