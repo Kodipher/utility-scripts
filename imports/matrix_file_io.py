@@ -7,6 +7,28 @@ if TYPE_CHECKING:
     from typing import TextIO
 
 
+#
+# This file provides 2 classes for
+# basic file reading/writing of 2d numpy arrays.
+# 
+# The IO functionality is very basic: classes read/write
+# array sizes and then values in reading order.
+#
+# Both classes use the `with` context.
+#
+#
+# == EXAMPLE USAGE ==
+#
+#  with MatrixSeriesWriter(r"path/to/file.txt") as file:
+#      file.write_matrix(mat1)
+#      file.write_matrix(mat2)
+#
+#  with MatrixSeriesReader(r"path/to/file.txt") as file:
+#      mat1 = file.read_matrix()
+#      mat2 = file.read_matrix()
+#
+
+
 class MatrixSeriesWriter:
     
     file_name: str
