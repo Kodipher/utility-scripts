@@ -29,6 +29,8 @@ output_file: Final[str] = "{name}.generated.svg"
 glyph_size: Final[int] = 10
 # Width of the image in the number of characters
 image_width: Final[int] = 10
+# The height of line separation, compared to the size of one glyph
+line_separation_height: Final[float] = 0.4
 
 # The background color of the resulting image
 background_color: Final[str] = "white"
@@ -126,7 +128,7 @@ def character_position_to_block_position(
     position_within_block = column_index % 4
 
     pair_x_absolute = block_x * 2
-    pair_y_absolute = block_y * 2
+    pair_y_absolute = block_y * 2 + line_separation_height * line_index
 
     if position_within_block > 1:
         pair_x_absolute += 1
