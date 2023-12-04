@@ -28,12 +28,14 @@ output_file: Final[str] = "{name}.generated.svg"
 # Basis for all sizes and positioning.
 glyph_size: Final[int] = 10
 # Width of the image in the number of characters
-image_width: Final[int] = 10
+image_width: Final[int] = 32
 # The height of line separation, compared to the size of one glyph
 line_separation_height: Final[float] = 0.4
+# Outline width, in pt. The outline is fully inside the rectangle
+outline_size: Final[float] = 0.5
 
-# The background color of the resulting image
-background_color: Final[str] = "white"
+
+# ======== ALPHABET ======== #
 # The color palette of svg (css) colors.
 # Each color is assigned a key to be used by glyphs in the alphabet.
 # A tuple of 2 colors can be given, then the first color is the fill and the second is outline.
@@ -47,7 +49,16 @@ color_palette: Final[dict[str, str | (str, str)]] = {
 
     "GA": "#7F7F7F", # Average Gray
     "GB": "#303030", # darker (Blacker) Gray
-    "GW": ("#D1D1D1", "#303030"), # lighter (Whiter) Gray
+    "GW": ("#D1D1D1", "#888888"), # lighter (Whiter) Gray
+
+    # Colors but outline only
+    "0R": ("#FFFFFF", "#FF0000"), 
+    "0G": ("#FFFFFF", "#19A319"), 
+    "0B": ("#FFFFFF", "#0167FF"), 
+    "0S": ("#FFFFFF", "#00CCFF"), 
+    "0V": ("#FFFFFF", "#CC66FF"), 
+    "0Y": ("#FFFFFF", "#FFCE0C"),
+    "0GB": ("#FFFFFF", "#303030"),
 }
 # The color keys used for each letter in order of top, then bottom (light then dark)
 alphabet: Final[dict[str, (str, str)]] = {
@@ -89,9 +100,28 @@ alphabet: Final[dict[str, (str, str)]] = {
     '!': ("GB", "GB"),
     '-': ("GA", "GA"),
     ',': ("GW", "GA"),
+    ";": ("GB", "GA"),
     "\"":("GA", "GW"),
-    "\'":("GA", "GW")
-    
+    "\'":("GA", "GW"),
+    ":": ("GB", "GW"),
+
+    '0': ("0GB", "R"),
+    '1': ("0GB", "Y"),
+    '2': ("0GB", "G"),
+    '3': ("0GB", "S"),
+    '4': ("0GB", "V"),
+    '5': ("0GB", "0R"),
+    '6': ("0GB", "0Y"),
+    '7': ("0GB", "0G"),
+    '8': ("0GB", "0S"),
+    '9': ("0GB", "0V"),
+    '(': ("GW", "0GB"),
+    ')': ("0GB", "GW"),
+    '[': ("GB", "0GB"),
+    ']': ("0GB", "GB"),
+    '<': ("GA", "0GB"),
+    '>': ("0GB", "GA"),
+    '#': ("0S", "0GB"),
 }
 
 
@@ -104,7 +134,7 @@ svg_template: Final[str] = """
 </svg>
 """
 rect_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{color}\" />"
-rect_outline_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{fill_color}\" stoke=\"{outline_color}\" />"
+rect_outline_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{fill_color}\" stroke=\"{outline_color}\" stroke-width=\"{outline_width}\" />"
 
 # Measurements (based on pixel measurements)
 # Each glyph takes 1 width by 1 width square
@@ -116,7 +146,7 @@ rectangle_second_offset_in_widths: Final[float] = rectangle_first_offset_in_widt
 
 
 # ======== GENERATION ======== #
-def character_position_to_block_position(
+def find_rectangle_position(
         line_index: int,
         column_index: int
     ) -> (float, float, bool): # pair_x_abs, pair_y_abs, is vertical
@@ -145,10 +175,16 @@ def create_rectangle(x, y, width, height, color: str | (str, str)):
     if isinstance(color, str):
         return rect_template.format(x=x, y=y, width=width, height=height, color=color)
     else:
-        return rect_outline_template.format(x=x, y=y, width=width, height=height, fill_color=color[0], outline_color=color[1])
+        # Keep outline inside the rectangle
+        x += outline_size/2
+        y += outline_size/2
+        width -= outline_size
+        height -= outline_size
+        # Crate the rectangle
+        return rect_outline_template.format(x=x, y=y, width=width, height=height, fill_color=color[0], outline_color=color[1], outline_width=outline_size)
 
 
-def create_rectangle_pair(
+def generate_rectangle_pair(
         line_index: int,
         column_index: int, # index in that line
         top_color: str | (str, str),
@@ -168,7 +204,7 @@ def create_rectangle_pair(
     pair_data[1]["height"] = pair_data[0]["height"]
 
     # Offset to absolute positions and rotate the pair
-    x_offset, y_offset, is_vertical = character_position_to_block_position(line_index, column_index)
+    x_offset, y_offset, is_vertical = find_rectangle_position(line_index, column_index)
 
     if is_vertical:
         for i in range(2):
@@ -200,7 +236,7 @@ def main():
     text_lines = list(
         chain.from_iterable(
             map(
-                    lambda s: wrap(s, width=image_width*2, replace_whitespace=False),
+                    lambda s: ("",) if len(s.strip()) == 0 else wrap(s, width=image_width*2, replace_whitespace=False),
                     text.splitlines()
                 )
             )
@@ -208,30 +244,29 @@ def main():
 
     # Generate image
     print("Generating image...")
-
     rectangles: list[str] = list()  # I wish i could preallocate certain length
 
     for line_index, line in enumerate(text_lines):
 
         col_index = 0
 
-        for character in line:
-
+        for character in line.upper():
+            
             color_pair = alphabet.get(character, None)
 
             if color_pair is None:
-                print(f"Character {repr(character)} at row {line_index+1} col {col_index+1} is not defined in the alphabet. Skipping.")
+                print(f"Character {repr(character)} at wrapped row {line_index+1} col {col_index+1} is not defined in the alphabet. Skipping.")
                 continue
 
             top_color = color_palette[color_pair[0]]
             bottom_color = color_palette[color_pair[1]]
 
-            rectangles.extend(create_rectangle_pair(line_index, col_index, top_color, bottom_color))
+            rectangles.extend(generate_rectangle_pair(line_index, col_index, top_color, bottom_color))
             col_index += 1
 
     image = svg_template.format(
         width=image_width*glyph_size,
-        height=len(text_lines)*2*glyph_size,
+        height=len(text_lines) * (2*glyph_size + line_separation_height),
         content="\n".join(rectangles)
     )
 
