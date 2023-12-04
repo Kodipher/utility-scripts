@@ -15,6 +15,7 @@ Scripts that are designed to be used as imports can be found in the `imports` di
 | `durations_set_searcher.py`  | Finds sets of pools and durations of actions, so that a random selection of a pool is balanced. |
 | `sequence_generator.py`      | Generates sequences of numbers.                              |
 | `ktane_repo_filter_maker.py` | For playing KTaNE. Using a no modded module profile, generates a filter for the experts to use on the manual repository. |
+| `color_tokki_svg_generator.py` | Generates an svg image using ColorTokki constructed script ([see on Omniglot](https://www.omniglot.com/conscripts/colorhoney.php)) with some adjustments to allow punctuation and spaces without breaking the flow of the script. |
 
 ### Imports:
 
