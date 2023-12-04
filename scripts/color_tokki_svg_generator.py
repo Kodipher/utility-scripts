@@ -92,8 +92,24 @@ alphabet: Final[dict[str, (str, str)]] = {
 }
 
 
-# ======== DOCUMENT TEMPLATES ======== #
-# TODO
+# ======== ELEMENTS AND MEASUREMENTS ======== #
+svg_template: Final[str] = """
+<svg version="1.1"
+     width="{width}pt" height="{height}pt"
+     xmlns="http://www.w3.org/2000/svg">
+{content}
+</svg>
+"""
+rect_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{color}\" />"
+rect_outline_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{fill_color}\" stoke=\"{outline_color}\" />"
+
+# Measurements (based on pixel measurements)
+# Each glyph takes 1 width by 1 width square
+# Assume squares have no padding
+rectangle_height_in_widths: Final[float] = 14.0/47
+rectangle_same_glyph_distance_in_widths: Final[float] = 5.0/47
+rectangle_first_offset_in_widths: Final[float] = 0.5 - rectangle_same_glyph_distance_in_widths / 2 - rectangle_height_in_widths
+rectangle_second_offset_in_widths: Final[float] = rectangle_first_offset_in_widths + rectangle_height_in_widths + rectangle_same_glyph_distance_in_widths
 
 
 # ======== GENERATION ======== #
