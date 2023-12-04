@@ -23,8 +23,9 @@ input_file: Final[str] = "script.txt"
 # Supports {name} for input file name without extension.
 output_file: Final[str] = "{name}.generated.svg"
 
-# The height of one letter including padding in pt
-letter_height: Final[int] = 10
+# The width of one horizontal rectangle excluding padding in pt.
+# Basis for all sizes and positioning.
+glyph_size: Final[int] = 10
 # Width of the image in the number of characters
 image_width: Final[int] = 10
 
@@ -33,7 +34,7 @@ background_color: Final[str] = "white"
 # The color palette of svg (css) colors.
 # Each color is assigned a key to be used by glyphs in the alphabet.
 # A tuple of 2 colors can be given, then the first color is the fill and the second is outline.
-color_pallette: Final[dict[str, str | (str, str)]] = {
+color_palette: Final[dict[str, str | (str, str)]] = {
     "R": "#FF0000", # Red
     "G": "#19A319", # Green
     "B": "#0167FF", # dark Blue
@@ -89,8 +90,6 @@ alphabet: Final[dict[str, (str, str)]] = {
     "\'":("GA", "GW")
     
 }
-# Set to true to treat whitespace characters as inline line breaks.
-space_breaks_word: Final[bool] = False
 
 
 # ======== DOCUMENT TEMPLATES ======== #
