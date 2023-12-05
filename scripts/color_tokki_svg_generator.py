@@ -31,14 +31,15 @@ output_file: Final[str] = "{name}.generated.svg"
 # The width of one horizontal rectangle in em.
 # A glyph takes 1 width by 1 width rectangle space and has no padding.
 # Basis for all sizes and positioning.
-glyph_size: Final[int] = 14
+glyph_size: Final[int] = 1
 # Width of the image in the number of characters
 image_width: Final[int] = 32
 # The height of line separation, compared to the size of one glyph.
 # Only applies if line breaks are not treated as a glyph.
 line_separation_height: Final[float] = 0.4
 # Outline width, in em. The outline is fully inside the rectangle
-outline_size: Final[float] = 0.5
+# Default: glyph_size*(3/32)
+outline_size: Final[float] = 0.09375
 
 # Wether to place a default glyph in place of unknown characters (True) or skip them completely (False)
 keep_unknown_characters: Final[bool] = True
@@ -191,7 +192,7 @@ svg_template: Final[str] = """
 </svg>
 """
 rect_template: Final[str] = """<rect x="{x}em" y="{y}em" width="{width}em" height="{height}em" fill="{color}" />"""
-rect_outline_template: Final[str] = """<rect x="{x}em" y="{y}em" width="{width}em" height="{height}em" fill="{fill_color}" stroke="{outline_color}" stroke-width="{outline_width}" />"""
+rect_outline_template: Final[str] = """<rect x="{x}em" y="{y}em" width="{width}em" height="{height}em" fill="{fill_color}" stroke="{outline_color}" stroke-width="{outline_width}em" />"""
 
 # Measurements (based on pixel measurements)
 # Each glyph takes 1 width by 1 width square
