@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Final, Sequence, Any
+from typing import Final, Iterable, Callable, Any, TypeVar
 
 from pathlib import Path
 from textwrap import wrap
@@ -15,7 +15,7 @@ from traceback import format_exc
 #
 # Some alterations have been made
 # and are available via extended alphabet:
-# Black and white solid glyphs are spaces and punctuation;
+# Black and white solid glyphs are spaces, line breaks and punctuation;
 # Black and white glyphs with one outline glyph are brackets;
 # Colored glyphs with top bar outlines are digits;
 # Colored glyphs with bottom bar outlined are misc symbols.
@@ -28,7 +28,8 @@ input_file: Final[str] = "script.txt"
 # Supports {name} for input file name without extension.
 output_file: Final[str] = "{name}.generated.svg"
 
-# The width of one horizontal rectangle excluding padding in em.
+# The width of one horizontal rectangle in em.
+# A glyph takes 1 width by 1 width rectangle space and has no padding.
 # Basis for all sizes and positioning.
 glyph_size: Final[int] = 14
 # Width of the image in the number of characters
@@ -41,6 +42,15 @@ outline_size: Final[float] = 0.5
 
 # Wether to place a default glyph in place of unknown characters (True) or skip them completely (False)
 keep_unknown_characters: Final[bool] = True
+# Wether to use extended alphabet
+use_extended_alphabet: Final[bool] = True
+# Wether to use space as a glyph (False) or change spaces to line breaks (True).
+# Requires extended alphabet to have an effect, otherwise True.
+spaces_become_line_breaks: Final[bool] = True
+# Wether to keep the line breaks inline as glyphs.
+# Requires extended alphabet to have an effect, otherwise False.
+inline_line_breaks: Final[bool] = False
+
 
 # ======== ALPHABET ======== #
 # The color palette of svg (css) colors.
@@ -104,6 +114,9 @@ alphabet: Final[dict[str, (str, str)]] = {
     'W': ("B", "V"),
     'X': ("B", "Y"),
     'Z': ("S", "B"),
+}
+# Same as alphabet but only the extended characters
+alphabet_extension: Final[dict[str, (str, str)]] = {
 
     # Punctuation
     # 0 -- dark, 3 -- light
@@ -189,11 +202,17 @@ rectangle_first_offset_in_widths: Final[float] = 0.5 - rectangle_same_glyph_dist
 rectangle_second_offset_in_widths: Final[float] = rectangle_first_offset_in_widths + rectangle_height_in_widths + rectangle_same_glyph_distance_in_widths
 
 
-# ======== GENERATION ======== #
+# ======== UTILS AND GENERATION ======== #
+T = TypeVar("T")
+U = TypeVar("U")
+def select_many(delegate: Callable[[T], Iterable[U]], iterable: Iterable[T]) -> Iterable[U]:
+    return chain.from_iterable(map(delegate, iterable))
+    
+
 def find_rectangle_position(
         line_index: int,
         column_index: int
-    ) -> (float, float, bool): # pair_x_abs, pair_y_abs, is vertical
+    ) -> (float, float, bool): # pair_x_abs, pair_y_abs, is_vertical
 
     # Calculate block position (group of 4)
     # all positions are in rectangle widths
@@ -201,8 +220,9 @@ def find_rectangle_position(
     block_y = line_index
     position_within_block = column_index % 4
 
-    pair_x_absolute = block_x * 2
-    pair_y_absolute = block_y * 2 + line_separation_height * line_index
+    # Based on block position calculate the pair position
+    pair_x_absolute: float = block_x * 2
+    pair_y_absolute: float = block_y * 2
 
     if position_within_block > 1:
         pair_x_absolute += 1
@@ -210,8 +230,16 @@ def find_rectangle_position(
     if position_within_block % 2 == 1:
         pair_y_absolute += 1
 
+    if pair_x_absolute >= image_width:
+        print(f"Character at wrapped row {line_index+1} col {column_index+1} is out of bound of {image_width} characters width area")
+
     is_vertical = position_within_block == 1 or position_within_block == 2
 
+    # Add line separation if line breaks are not inlined
+    if not use_extended_alphabet or not inline_line_breaks:
+        pair_y_absolute += line_separation_height * line_index
+
+    # Return
     return (pair_x_absolute, pair_y_absolute, is_vertical)
 
 
@@ -230,7 +258,7 @@ def create_rectangle(x, y, width, height, color: str | (str, str)):
 
 def generate_rectangle_pair(
         line_index: int,
-        column_index: int, # index in that line
+        column_index: int,
         top_color: str | (str, str),
         bottom_color: str | (str, str)
     ) -> (str, str):
@@ -269,6 +297,11 @@ def generate_rectangle_pair(
 
 def main():
 
+    # Check some settings
+    if image_width < 1:
+        print("Image width must be at least 1 characters. Assuming the value of 1.")
+        image_width = 1
+
     # Read input file
     print("Reading input file...")
     input_file_path = Path(input_file)
@@ -280,16 +313,47 @@ def main():
 
     # Splitting into lines
     print("Splitting into lines according to chosen settings...")
-    text_lines: Sequence[str]
+    text_lines: list[str]
 
-    text_lines = list(
-        chain.from_iterable(
-            map(
-                    lambda s: ("",) if len(s.strip()) == 0 else wrap(s, width=image_width*2, replace_whitespace=False),
-                    text.splitlines()
-                )
-            )
-        )
+    if use_extended_alphabet:
+
+        if inline_line_breaks:
+
+            # First normalize line breaks to all be "\n"
+            text = "\n".join(text.splitlines())
+
+            # Replace spaces if needed
+            if spaces_become_line_breaks:
+                text.replace(' ', '\n')
+
+            # Batch by how many characters fit
+            batching_width = image_width * 2
+            text_lines = [text[i:i+batching_width] for i in range(0, len(text), batching_width)]
+       
+        else:
+            
+            # First split by new lines
+            text_lines = text.splitlines()
+
+            # Then split by spaces
+            if spaces_become_line_breaks:
+                text_lines = list(select_many(lambda line: line.split('\n'), text_lines))
+
+            # Then wrap it around but keep empty lines
+            text_lines = list(select_many(
+                lambda s: ("",) if len(s.strip()) == 0 else wrap(s, width=image_width*2, replace_whitespace=False),
+                text_lines
+            ))
+        
+    else:
+        
+        # Split on new lines,
+        # then split each line on space
+        text_lines = list(select_many(
+            lambda line: line.split(' '),
+            text.splitlines()
+        ))
+    
 
     # Generate image
     print("Generating image...")
@@ -302,6 +366,9 @@ def main():
             
             # Find colors
             color_pair = alphabet.get(character, None)
+
+            if use_extended_alphabet and color_pair is None:
+                color_pair = alphabet_extension.get(character, None)
 
             if color_pair is None:
                 print(f"Character {repr(character)} at wrapped row {line_index+1} col {col_index+1} is not defined in the alphabet. Skipping.")
@@ -319,9 +386,15 @@ def main():
             # Move to the next column in the resulting image
             col_index += 1
 
+    # Create the image
+    image_height: float = len(text_lines) * (2 * glyph_size)
+
+    if not use_extended_alphabet or not inline_line_breaks:
+        image_height += len(text_lines) * line_separation_height
+
     image = svg_template.format(
         width=image_width*glyph_size,
-        height=len(text_lines) * (2*glyph_size + line_separation_height),
+        height=image_height,
         content="\n".join(rectangles)
     )
 
