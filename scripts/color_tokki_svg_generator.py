@@ -325,7 +325,7 @@ def main():
 
             # Replace spaces if needed
             if spaces_become_line_breaks:
-                text.replace(' ', '\n')
+                text = text.replace(' ', '\n')
 
             # Batch by how many characters fit
             batching_width = image_width * 2
