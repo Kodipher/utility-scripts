@@ -299,9 +299,9 @@ def main():
 
     # Check some settings
     if image_width < 1:
-        print("Image width must be at least 1 characters. Assuming the value of 1.")
-        image_width = 1
-
+        print("Image width must be at least 1 characters. Aborting.")
+        return
+    
     # Read input file
     print("Reading input file...")
     input_file_path = Path(input_file)
