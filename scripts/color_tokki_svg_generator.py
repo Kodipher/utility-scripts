@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Final
+from typing import Final, Sequence, Any
 
 from pathlib import Path
 from textwrap import wrap
@@ -231,7 +231,7 @@ def generate_rectangle_pair(
         bottom_color: str | (str, str)
     ) -> (str, str):
 
-    pair_data = (dict(), dict())
+    pair_data: (dict[str, Any], dict[str, Any]) = (dict(), dict())
 
     # Create rectangles with relative positioning
     pair_data[0]["x"] = 0
@@ -273,6 +273,11 @@ def main():
         return
 
     text = input_file_path.read_text()
+
+    # Splitting into lines
+    print("Splitting into lines according to chosen settings...")
+    text_lines: Sequence[str]
+
     text_lines = list(
         chain.from_iterable(
             map(
