@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Final
+from typing import Final, Iterable, Callable, Any, TypeVar
 
 from pathlib import Path
 from textwrap import wrap
@@ -13,8 +13,12 @@ from traceback import format_exc
 #
 # Script info on Omniglot: https://www.omniglot.com/conscripts/colorhoney.php 
 #
-# Some alterations have been made to allow for spaces and
-# punctuation without breaking the flow of writing.
+# Some alterations have been made
+# and are available via extended alphabet:
+# Black and white solid glyphs are spaces, line breaks and punctuation;
+# Black and white glyphs with one outline glyph are brackets;
+# Colored glyphs with top bar outlines are digits;
+# Colored glyphs with bottom bar outlined are misc symbols.
 
 
 # ======== SETTINGS ======== #
@@ -24,15 +28,29 @@ input_file: Final[str] = "script.txt"
 # Supports {name} for input file name without extension.
 output_file: Final[str] = "{name}.generated.svg"
 
-# The width of one horizontal rectangle excluding padding in pt.
+# The width of one horizontal rectangle in em.
+# A glyph takes 1 width by 1 width rectangle space and has no padding.
 # Basis for all sizes and positioning.
-glyph_size: Final[int] = 10
+glyph_size: Final[int] = 1
 # Width of the image in the number of characters
 image_width: Final[int] = 32
-# The height of line separation, compared to the size of one glyph
+# The height of line separation, compared to the size of one glyph.
+# Only applies if line breaks are not treated as a glyph.
 line_separation_height: Final[float] = 0.4
-# Outline width, in pt. The outline is fully inside the rectangle
-outline_size: Final[float] = 0.5
+# Outline width, in em. The outline is fully inside the rectangle
+# Default: glyph_size*(3/32)
+outline_size: Final[float] = 0.09375
+
+# Wether to place a default glyph in place of unknown characters (True) or skip them completely (False)
+keep_unknown_characters: Final[bool] = True
+# Wether to use extended alphabet
+use_extended_alphabet: Final[bool] = True
+# Wether to use space as a glyph (False) or change spaces to line breaks (True).
+# Requires extended alphabet to have an effect, otherwise True.
+spaces_become_line_breaks: Final[bool] = True
+# Wether to keep the line breaks inline as glyphs.
+# Requires extended alphabet to have an effect, otherwise False.
+inline_line_breaks: Final[bool] = False
 
 
 # ======== ALPHABET ======== #
@@ -40,6 +58,8 @@ outline_size: Final[float] = 0.5
 # Each color is assigned a key to be used by glyphs in the alphabet.
 # A tuple of 2 colors can be given, then the first color is the fill and the second is outline.
 color_palette: Final[dict[str, str | (str, str)]] = {
+
+    # Default colors
     "R": "#FF0000", # Red
     "G": "#19A319", # Green
     "B": "#0167FF", # dark Blue
@@ -47,18 +67,21 @@ color_palette: Final[dict[str, str | (str, str)]] = {
     "V": "#CC66FF", # Violet
     "Y": "#FFCE0C", # Yellow
 
-    "GA": "#7F7F7F", # Average Gray
-    "GB": "#303030", # darker (Blacker) Gray
-    "GW": ("#D1D1D1", "#888888"), # lighter (Whiter) Gray
+    # Black and white
+    "BW0": "#333333",
+    "BW1": "#666666",
+    "BW2": "#999999",
+    "BW3": "#CCCCCC",
 
     # Colors but outline only
-    "0R": ("#FFFFFF", "#FF0000"), 
-    "0G": ("#FFFFFF", "#19A319"), 
-    "0B": ("#FFFFFF", "#0167FF"), 
-    "0S": ("#FFFFFF", "#00CCFF"), 
-    "0V": ("#FFFFFF", "#CC66FF"), 
-    "0Y": ("#FFFFFF", "#FFCE0C"),
-    "0GB": ("#FFFFFF", "#303030"),
+    "oR": ("#FFFFFF00", "#FF0000"), 
+    "oG": ("#FFFFFF00", "#19A319"), 
+    "oB": ("#FFFFFF00", "#0167FF"), 
+    "oS": ("#FFFFFF00", "#00CCFF"), 
+    "oV": ("#FFFFFF00", "#CC66FF"), 
+    "oY": ("#FFFFFF00", "#FFCE0C"),
+    "oBW1": ("#FFFFFF00", "#666666"),
+    "oBW3": ("#FFFFFF00", "#CCCCCC"),
 }
 # The color keys used for each letter in order of top, then bottom (light then dark)
 alphabet: Final[dict[str, (str, str)]] = {
@@ -92,49 +115,84 @@ alphabet: Final[dict[str, (str, str)]] = {
     'W': ("B", "V"),
     'X': ("B", "Y"),
     'Z': ("S", "B"),
-
-    # Extended
-    ' ': ("GW", "GW"),
-    '.': ("GW", "GB"),
-    "?": ("GA", "GB"),
-    '!': ("GB", "GB"),
-    '-': ("GA", "GA"),
-    ',': ("GW", "GA"),
-    ";": ("GB", "GA"),
-    "\"":("GA", "GW"),
-    "\'":("GA", "GW"),
-    ":": ("GB", "GW"),
-
-    '0': ("0GB", "R"),
-    '1': ("0GB", "Y"),
-    '2': ("0GB", "G"),
-    '3': ("0GB", "S"),
-    '4': ("0GB", "V"),
-    '5': ("0GB", "0R"),
-    '6': ("0GB", "0Y"),
-    '7': ("0GB", "0G"),
-    '8': ("0GB", "0S"),
-    '9': ("0GB", "0V"),
-    '(': ("GW", "0GB"),
-    ')': ("0GB", "GW"),
-    '[': ("GB", "0GB"),
-    ']': ("0GB", "GB"),
-    '<': ("GA", "0GB"),
-    '>': ("0GB", "GA"),
-    '#': ("0S", "0GB"),
 }
+# Same as alphabet but only the extended characters
+alphabet_extension: Final[dict[str, (str, str)]] = {
+
+    # Punctuation
+    # 0 -- dark, 3 -- light
+    # y -- bottom, x -- top, i.e. (x,y)
+    #
+    # 3 "'*s
+    # 2 &-:n
+    # 1  /; 
+    # 0 !?,.
+    #   0123
+    ' ': ("BW3", "BW3"),
+    '\n':("BW3", "BW2"),
+    '.': ("BW3", "BW0"),
+    ',': ("BW2", "BW0"),
+    '?': ("BW1", "BW0"),
+    '!': ("BW0", "BW0"),
+    '-': ("BW1", "BW2"),
+    '&': ("BW0", "BW2"),
+    ';': ("BW2", "BW1"),
+    ':': ("BW2", "BW2"),
+    '*': ("BW2", "BW3"),
+    '\'':("BW1", "BW3"),
+    '\"':("BW0", "BW3"),
+    '/': ("BW1", "BW1"),
+    '\\':("BW1", "BW1"), # same as '/'
+
+    # Brackets
+    # outline on the inside
+    # from dark to light: [<{(
+    '[': ("BW0", "oBW1"),
+    '<': ("BW1", "oBW1"),
+    '{': ("BW2", "oBW1"),
+    '(': ("BW3", "oBW1"),
+    ']': ("oBW1", "BW0"),
+    '>': ("oBW1", "BW1"),
+    '}': ("oBW1", "BW2"),
+    ')': ("oBW1", "BW3"),
+
+    # Digits
+    # Equivalent to letter positions 0=26, 1, .. 9
+    # but with outline on the top
+    '0': ("oS", "B"), # Z
+    '1': ("oV", "V"), # A
+    '2': ("oV", "S"), # B
+    '3': ("oV", "B"), # C
+    '4': ("oV", "G"), # D
+    '5': ("oR", "R"), # E
+    '6': ("oR", "G"), # F
+    '7': ("oR", "B"), # G
+    '8': ("oR", "S"), # H
+    '9': ("oG", "G"), # I
+    
+    # Misc signs
+    # Equivalent to respective letters but outline on the bottom
+    '#': ("G", "oR"), # N for Number
+    '№': ("G", "oR"), # same as '#'
+    '%': ("V", "oB"), # C for per Cent
+    '^': ("R", "oR"), # E for Exponent
+    '=': ("Y", "oS"), # Q for eQuality
+    '+': ("V", "oV")  # A for Addition
+}
+# The color keys for the unknown glyph
+glyph_unknown: Final[(str, str)] = ("oBW3", "oBW3")
 
 
 # ======== ELEMENTS AND MEASUREMENTS ======== #
 svg_template: Final[str] = """
 <svg version="1.1"
-     width="{width}pt" height="{height}pt"
+     width="{width}em" height="{height}em"
      xmlns="http://www.w3.org/2000/svg">
 {content}
 </svg>
 """
-rect_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{color}\" />"
-rect_outline_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{fill_color}\" stroke=\"{outline_color}\" stroke-width=\"{outline_width}\" />"
+rect_template: Final[str] = """<rect x="{x}em" y="{y}em" width="{width}em" height="{height}em" fill="{color}" />"""
+rect_outline_template: Final[str] = """<rect x="{x}em" y="{y}em" width="{width}em" height="{height}em" fill="{fill_color}" stroke="{outline_color}" stroke-width="{outline_width}em" />"""
 
 # Measurements (based on pixel measurements)
 # Each glyph takes 1 width by 1 width square
@@ -145,11 +203,17 @@ rectangle_first_offset_in_widths: Final[float] = 0.5 - rectangle_same_glyph_dist
 rectangle_second_offset_in_widths: Final[float] = rectangle_first_offset_in_widths + rectangle_height_in_widths + rectangle_same_glyph_distance_in_widths
 
 
-# ======== GENERATION ======== #
+# ======== UTILS AND GENERATION ======== #
+T = TypeVar("T")
+U = TypeVar("U")
+def select_many(delegate: Callable[[T], Iterable[U]], iterable: Iterable[T]) -> Iterable[U]:
+    return chain.from_iterable(map(delegate, iterable))
+    
+
 def find_rectangle_position(
         line_index: int,
         column_index: int
-    ) -> (float, float, bool): # pair_x_abs, pair_y_abs, is vertical
+    ) -> (float, float, bool): # pair_x_abs, pair_y_abs, is_vertical
 
     # Calculate block position (group of 4)
     # all positions are in rectangle widths
@@ -157,8 +221,9 @@ def find_rectangle_position(
     block_y = line_index
     position_within_block = column_index % 4
 
-    pair_x_absolute = block_x * 2
-    pair_y_absolute = block_y * 2 + line_separation_height * line_index
+    # Based on block position calculate the pair position
+    pair_x_absolute: float = block_x * 2
+    pair_y_absolute: float = block_y * 2
 
     if position_within_block > 1:
         pair_x_absolute += 1
@@ -166,8 +231,16 @@ def find_rectangle_position(
     if position_within_block % 2 == 1:
         pair_y_absolute += 1
 
+    if pair_x_absolute >= image_width:
+        print(f"Character at wrapped row {line_index+1} col {column_index+1} is out of bound of {image_width} characters width area")
+
     is_vertical = position_within_block == 1 or position_within_block == 2
 
+    # Add line separation if line breaks are not inlined
+    if not use_extended_alphabet or not inline_line_breaks:
+        pair_y_absolute += line_separation_height * line_index
+
+    # Return
     return (pair_x_absolute, pair_y_absolute, is_vertical)
 
 
@@ -186,12 +259,12 @@ def create_rectangle(x, y, width, height, color: str | (str, str)):
 
 def generate_rectangle_pair(
         line_index: int,
-        column_index: int, # index in that line
+        column_index: int,
         top_color: str | (str, str),
         bottom_color: str | (str, str)
     ) -> (str, str):
 
-    pair_data = (dict(), dict())
+    pair_data: (dict[str, Any], dict[str, Any]) = (dict(), dict())
 
     # Create rectangles with relative positioning
     pair_data[0]["x"] = 0
@@ -225,6 +298,11 @@ def generate_rectangle_pair(
 
 def main():
 
+    # Check some settings
+    if image_width < 1:
+        print("Image width must be at least 1 characters. Aborting.")
+        return
+    
     # Read input file
     print("Reading input file...")
     input_file_path = Path(input_file)
@@ -233,14 +311,50 @@ def main():
         return
 
     text = input_file_path.read_text()
-    text_lines = list(
-        chain.from_iterable(
-            map(
-                    lambda s: ("",) if len(s.strip()) == 0 else wrap(s, width=image_width*2, replace_whitespace=False),
-                    text.splitlines()
-                )
-            )
-        )
+
+    # Splitting into lines
+    print("Splitting into lines according to chosen settings...")
+    text_lines: list[str]
+
+    if use_extended_alphabet:
+
+        if inline_line_breaks:
+
+            # First normalize line breaks to all be "\n"
+            text = "\n".join(text.splitlines())
+
+            # Replace spaces if needed
+            if spaces_become_line_breaks:
+                text = text.replace(' ', '\n')
+
+            # Batch by how many characters fit
+            batching_width = image_width * 2
+            text_lines = [text[i:i+batching_width] for i in range(0, len(text), batching_width)]
+       
+        else:
+            
+            # First split by new lines
+            text_lines = text.splitlines()
+
+            # Then split by spaces
+            if spaces_become_line_breaks:
+                text_lines = list(select_many(lambda line: line.split('\n'), text_lines))
+
+            # Then wrap it around but keep empty lines
+            text_lines = list(select_many(
+                lambda s: ("",) if len(s.strip()) == 0 else wrap(s, width=image_width*2, replace_whitespace=False),
+                text_lines
+            ))
+        
+    else:
+        
+        # Split on new lines,
+        # then split each line on space
+        text_lines = list(select_many(
+            lambda line: line.split(' '),
+            text.splitlines()
+        ))
+    
 
     # Generate image
     print("Generating image...")
@@ -249,24 +363,39 @@ def main():
     for line_index, line in enumerate(text_lines):
 
         col_index = 0
-
         for character in line.upper():
             
+            # Find colors
             color_pair = alphabet.get(character, None)
+
+            if use_extended_alphabet and color_pair is None:
+                color_pair = alphabet_extension.get(character, None)
 
             if color_pair is None:
                 print(f"Character {repr(character)} at wrapped row {line_index+1} col {col_index+1} is not defined in the alphabet. Skipping.")
-                continue
+                
+                if keep_unknown_characters:
+                    color_pair = glyph_unknown
+                else:
+                    continue
 
+            # Create and add the rectangle
             top_color = color_palette[color_pair[0]]
             bottom_color = color_palette[color_pair[1]]
-
             rectangles.extend(generate_rectangle_pair(line_index, col_index, top_color, bottom_color))
+
+            # Move to the next column in the resulting image
             col_index += 1
+
+    # Create the image
+    image_height: float = len(text_lines) * (2 * glyph_size)
+
+    if not use_extended_alphabet or not inline_line_breaks:
+        image_height += len(text_lines) * line_separation_height
 
     image = svg_template.format(
         width=image_width*glyph_size,
-        height=len(text_lines) * (2*glyph_size + line_separation_height),
+        height=image_height,
         content="\n".join(rectangles)
     )
 
