@@ -24,14 +24,15 @@ input_file: Final[str] = "script.txt"
 # Supports {name} for input file name without extension.
 output_file: Final[str] = "{name}.generated.svg"
 
-# The width of one horizontal rectangle excluding padding in pt.
+# The width of one horizontal rectangle excluding padding in em.
 # Basis for all sizes and positioning.
-glyph_size: Final[int] = 10
+glyph_size: Final[int] = 14
 # Width of the image in the number of characters
 image_width: Final[int] = 32
-# The height of line separation, compared to the size of one glyph
+# The height of line separation, compared to the size of one glyph.
+# Only applies if line breaks are not treated as a glyph.
 line_separation_height: Final[float] = 0.4
-# Outline width, in pt. The outline is fully inside the rectangle
+# Outline width, in em. The outline is fully inside the rectangle
 outline_size: Final[float] = 0.5
 
 
@@ -128,13 +129,13 @@ alphabet: Final[dict[str, (str, str)]] = {
 # ======== ELEMENTS AND MEASUREMENTS ======== #
 svg_template: Final[str] = """
 <svg version="1.1"
-     width="{width}pt" height="{height}pt"
+     width="{width}em" height="{height}em"
      xmlns="http://www.w3.org/2000/svg">
 {content}
 </svg>
 """
-rect_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{color}\" />"
-rect_outline_template: Final[str] = "<rect x=\"{x}\" y=\"{y}\" width=\"{width}\" height=\"{height}\" fill=\"{fill_color}\" stroke=\"{outline_color}\" stroke-width=\"{outline_width}\" />"
+rect_template: Final[str] = """<rect x="{x}em" y="{y}em" width="{width}em" height="{height}em" fill="{color}" />"""
+rect_outline_template: Final[str] = """<rect x="{x}em" y="{y}em" width="{width}em" height="{height}em" fill="{fill_color}" stroke="{outline_color}" stroke-width="{outline_width}" />"""
 
 # Measurements (based on pixel measurements)
 # Each glyph takes 1 width by 1 width square
