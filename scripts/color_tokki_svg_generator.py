@@ -13,8 +13,12 @@ from traceback import format_exc
 #
 # Script info on Omniglot: https://www.omniglot.com/conscripts/colorhoney.php 
 #
-# Some alterations have been made to allow for spaces and
-# punctuation without breaking the flow of writing.
+# Some alterations have been made
+# and are available via extended alphabet:
+# Black and white solid glyphs are spaces and punctuation;
+# Black and white glyphs with one outline glyph are brackets;
+# Colored glyphs with top bar outlines are digits;
+# Colored glyphs with bottom bar outlined are misc symbols.
 
 
 # ======== SETTINGS ======== #
@@ -41,6 +45,8 @@ outline_size: Final[float] = 0.5
 # Each color is assigned a key to be used by glyphs in the alphabet.
 # A tuple of 2 colors can be given, then the first color is the fill and the second is outline.
 color_palette: Final[dict[str, str | (str, str)]] = {
+
+    # Default colors
     "R": "#FF0000", # Red
     "G": "#19A319", # Green
     "B": "#0167FF", # dark Blue
@@ -48,18 +54,21 @@ color_palette: Final[dict[str, str | (str, str)]] = {
     "V": "#CC66FF", # Violet
     "Y": "#FFCE0C", # Yellow
 
-    "GA": "#7F7F7F", # Average Gray
-    "GB": "#303030", # darker (Blacker) Gray
-    "GW": ("#D1D1D1", "#888888"), # lighter (Whiter) Gray
+    # Black and white
+    "BW0": "#333333",
+    "BW1": "#666666",
+    "BW2": "#999999",
+    "BW3": "#CCCCCC",
 
     # Colors but outline only
-    "0R": ("#FFFFFF", "#FF0000"), 
-    "0G": ("#FFFFFF", "#19A319"), 
-    "0B": ("#FFFFFF", "#0167FF"), 
-    "0S": ("#FFFFFF", "#00CCFF"), 
-    "0V": ("#FFFFFF", "#CC66FF"), 
-    "0Y": ("#FFFFFF", "#FFCE0C"),
-    "0GB": ("#FFFFFF", "#303030"),
+    "oR": ("#FFFFFF00", "#FF0000"), 
+    "oG": ("#FFFFFF00", "#19A319"), 
+    "oB": ("#FFFFFF00", "#0167FF"), 
+    "oS": ("#FFFFFF00", "#00CCFF"), 
+    "oV": ("#FFFFFF00", "#CC66FF"), 
+    "oY": ("#FFFFFF00", "#FFCE0C"),
+    "oBW1": ("#FFFFFF00", "#666666"),
+    "oBW3": ("#FFFFFF00", "#CCCCCC"),
 }
 # The color keys used for each letter in order of top, then bottom (light then dark)
 alphabet: Final[dict[str, (str, str)]] = {
@@ -94,35 +103,65 @@ alphabet: Final[dict[str, (str, str)]] = {
     'X': ("B", "Y"),
     'Z': ("S", "B"),
 
-    # Extended
-    ' ': ("GW", "GW"),
-    '.': ("GW", "GB"),
-    "?": ("GA", "GB"),
-    '!': ("GB", "GB"),
-    '-': ("GA", "GA"),
-    ',': ("GW", "GA"),
-    ";": ("GB", "GA"),
-    "\"":("GA", "GW"),
-    "\'":("GA", "GW"),
-    ":": ("GB", "GW"),
+    # Punctuation
+    # 0 -- dark, 3 -- light
+    # y -- bottom, x -- top, i.e. (x,y)
+    #
+    # 3 "'*s
+    # 2 &-:n
+    # 1  /; 
+    # 0 !?,.
+    #   0123
+    ' ': ("BW3", "BW3"),
+    '\n':("BW3", "BW2"),
+    '.': ("BW3", "BW0"),
+    ',': ("BW2", "BW0"),
+    '?': ("BW1", "BW0"),
+    '!': ("BW0", "BW0"),
+    '-': ("BW1", "BW2"),
+    '&': ("BW0", "BW2"),
+    ';': ("BW2", "BW1"),
+    ':': ("BW2", "BW2"),
+    '*': ("BW2", "BW3"),
+    '\'':("BW1", "BW3"),
+    '\"':("BW0", "BW3"),
+    '/': ("BW1", "BW1"),
+    '\\':("BW1", "BW1"), # same as '/'
 
-    '0': ("0GB", "R"),
-    '1': ("0GB", "Y"),
-    '2': ("0GB", "G"),
-    '3': ("0GB", "S"),
-    '4': ("0GB", "V"),
-    '5': ("0GB", "0R"),
-    '6': ("0GB", "0Y"),
-    '7': ("0GB", "0G"),
-    '8': ("0GB", "0S"),
-    '9': ("0GB", "0V"),
-    '(': ("GW", "0GB"),
-    ')': ("0GB", "GW"),
-    '[': ("GB", "0GB"),
-    ']': ("0GB", "GB"),
-    '<': ("GA", "0GB"),
-    '>': ("0GB", "GA"),
-    '#': ("0S", "0GB"),
+    # Brackets
+    # outline on the inside
+    # from dark to light: [<{(
+    '[': ("BW0", "oBW1"),
+    '<': ("BW1", "oBW1"),
+    '{': ("BW2", "oBW1"),
+    '(': ("BW3", "oBW1"),
+    ']': ("oBW1", "BW0"),
+    '>': ("oBW1", "BW1"),
+    '}': ("oBW1", "BW2"),
+    ')': ("oBW1", "BW3"),
+
+    # Digits
+    # Equivalent to letter positions 0=26, 1, .. 9
+    # but with outline on the top
+    '0': ("oS", "B"), # Z
+    '1': ("oV", "V"), # A
+    '2': ("oV", "S"), # B
+    '3': ("oV", "B"), # C
+    '4': ("oV", "G"), # D
+    '5': ("oR", "R"), # E
+    '6': ("oR", "G"), # F
+    '7': ("oR", "B"), # G
+    '8': ("oR", "S"), # H
+    '9': ("oG", "G"), # I
+    
+    # Misc signs
+    # Equivalent to respective letters but outline on the bottom
+    '#': ("G", "oR"), # N for Number
+    '№': ("G", "oR"), # same as '#'
+    '%': ("V", "oB"), # C for per Cent
+    '^': ("R", "oR"), # E for Exponent
+    '=': ("Y", "oS"), # Q for eQuality
+    '+': ("V", "oV")  # A for Addition
 }
 
 
