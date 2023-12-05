@@ -39,6 +39,8 @@ line_separation_height: Final[float] = 0.4
 # Outline width, in em. The outline is fully inside the rectangle
 outline_size: Final[float] = 0.5
 
+# Wether to place a default glyph in place of unknown characters (True) or skip them completely (False)
+keep_unknown_characters: Final[bool] = True
 
 # ======== ALPHABET ======== #
 # The color palette of svg (css) colors.
@@ -163,6 +165,8 @@ alphabet: Final[dict[str, (str, str)]] = {
     '=': ("Y", "oS"), # Q for eQuality
     '+': ("V", "oV")  # A for Addition
 }
+# The color keys for the unknown glyph
+glyph_unknown: Final[(str, str)] = ("oBW3", "oBW3")
 
 
 # ======== ELEMENTS AND MEASUREMENTS ======== #
@@ -294,19 +298,25 @@ def main():
     for line_index, line in enumerate(text_lines):
 
         col_index = 0
-
         for character in line.upper():
             
+            # Find colors
             color_pair = alphabet.get(character, None)
 
             if color_pair is None:
                 print(f"Character {repr(character)} at wrapped row {line_index+1} col {col_index+1} is not defined in the alphabet. Skipping.")
-                continue
+                
+                if keep_unknown_characters:
+                    color_pair = glyph_unknown
+                else:
+                    continue
 
+            # Create and add the rectangle
             top_color = color_palette[color_pair[0]]
             bottom_color = color_palette[color_pair[1]]
-
             rectangles.extend(generate_rectangle_pair(line_index, col_index, top_color, bottom_color))
+
+            # Move to the next column in the resulting image
             col_index += 1
 
     image = svg_template.format(
